@@ -243,16 +243,15 @@
     background: var(--correct-bg) !important;
   }
 
-  /* 前へ・次へボタンの共通デザイン（幅48%） */
+  /* 前へ・次へボタンのデザイン（前へ: 25% / 次へ: 72%） */
   .nav-btn-row {
     display: flex;
     justify-content: space-between;
     width: 100%;
-    gap: 10px;
+    gap: 8px;
     margin: 12px 0;
   }
   .nav-move-btn {
-    width: 48%;
     padding: 12px 0;
     font-size: 1rem;
     font-weight: bold;
@@ -263,8 +262,17 @@
     color: var(--text-color);
     cursor: pointer;
   }
+  .nav-prev-btn {
+    width: 25%;
+  }
+  .nav-next-btn {
+    width: 72%;
+    background: #e8f0fe;
+    color: #1967d2;
+    border-color: #aecbfa;
+  }
   .nav-move-btn:hover:not(:disabled) {
-    background: rgba(26, 115, 232, 0.06);
+    background: rgba(26, 115, 232, 0.1);
     border-color: var(--primary);
   }
 
