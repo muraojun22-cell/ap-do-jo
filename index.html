@@ -242,6 +242,32 @@
     border-color: var(--correct-border) !important;
     background: var(--correct-bg) !important;
   }
+
+  /* 前へ・次へボタンの共通デザイン（幅48%） */
+  .nav-btn-row {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    margin: 12px 0;
+  }
+  .nav-move-btn {
+    width: 48%;
+    padding: 12px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-color);
+    cursor: pointer;
+  }
+  .nav-move-btn:hover:not(:disabled) {
+    background: rgba(26, 115, 232, 0.06);
+    border-color: var(--primary);
+  }
+
   .answer-panel {
     display: none;
     background: rgba(0,0,0,0.02);
@@ -282,26 +308,12 @@
   }
   .history-box ul { margin: 4px 0 0 14px; padding: 0; }
 
-  /* ナビゲーションフッター: 前へ・次へボタンの幅を各45%前後に拡大 */
+  /* ナビゲーションフッター */
   .nav-footer {
     display: flex;
     flex-direction: column;
     gap: 10px;
     margin-top: 14px;
-  }
-  .nav-btn-row {
-    display: flex;
-    justify-content: space-between;
-    width: 100%;
-    gap: 10px;
-  }
-  .nav-move-btn {
-    width: 48%;
-    padding: 12px 0;
-    font-size: 1rem;
-    font-weight: bold;
-    border-radius: 8px;
-    text-align: center;
   }
   .nav-action-row {
     display: flex;
@@ -318,6 +330,7 @@
     border: none;
     font-weight: bold;
     border-radius: 8px;
+    cursor: pointer;
   }
   .link-web {
     color: var(--primary);
@@ -327,7 +340,7 @@
   }
   .link-web:hover { text-decoration: underline; }
 
-  /* 回答記録の枠（一番下に移動） */
+  /* 回答記録の枠（一番下に配置） */
   .storage-bar {
     background: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -431,6 +444,12 @@
     <!-- 選択肢（画像選択肢に対応） -->
     <div class="choices-list" id="choicesList"></div>
 
+    <!-- ★追加：選択肢直後（回答結果・解説の上）にも前へ・次へボタンを配置 -->
+    <div class="nav-btn-row">
+      <button onclick="prevQuestion()" class="nav-move-btn nav-prev-btn">◀ 前へ</button>
+      <button onclick="nextQuestion()" class="nav-move-btn nav-next-btn">次へ ▶</button>
+    </div>
+
     <!-- 解説パネル -->
     <div class="answer-panel" id="answerPanel">
       <div class="ans-title" id="ansResult"></div>
@@ -442,11 +461,11 @@
       </div>
     </div>
 
-    <!-- ナビゲーションフッター: 前へ・次へボタン各48%幅 -->
+    <!-- ナビゲーションフッター（解説パネルの下） -->
     <div class="nav-footer">
       <div class="nav-btn-row">
-        <button onclick="prevQuestion()" id="prevBtn" class="nav-move-btn">◀ 前へ</button>
-        <button onclick="nextQuestion()" id="nextBtn" class="nav-move-btn">次へ ▶</button>
+        <button onclick="prevQuestion()" class="nav-move-btn nav-prev-btn">◀ 前へ</button>
+        <button onclick="nextQuestion()" class="nav-move-btn nav-next-btn">次へ ▶</button>
       </div>
       <div class="nav-action-row">
         <button class="btn-explain" onclick="showExplanation()" id="showAnsBtn">答え・解説を表示</button>
@@ -455,7 +474,7 @@
     </div>
   </div>
 
-  <!-- 回答記録・成績保管（一番下に移動） -->
+  <!-- 回答記録・成績保管（一番下に配置） -->
   <div class="storage-bar">
     <div class="storage-desc">
       <span>💾 <strong>解答記録と成績の保管</strong></span>
@@ -611,8 +630,9 @@ function loadQuestion(idx) {
     panel.style.display = "none";
   }
 
-  document.getElementById("prevBtn").disabled = (idx === 0);
-  document.getElementById("nextBtn").disabled = (idx === currentList.length - 1);
+  // 上下すべての前へ・次へボタンの有効/無効を連動
+  document.querySelectorAll(".nav-prev-btn").forEach(btn => btn.disabled = (idx === 0));
+  document.querySelectorAll(".nav-next-btn").forEach(btn => btn.disabled = (idx === currentList.length - 1));
 }
 
 function selectChoice(selectedKey, correctKey, btn, qId) {
