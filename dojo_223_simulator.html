@@ -94,8 +94,8 @@
     border: none;
     background: transparent;
     color: var(--subtext-color);
-    padding: 4px 9px;
-    font-size: 0.8rem;
+    padding: 5px 12px;
+    font-size: 0.85rem;
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
@@ -363,7 +363,7 @@
     opacity: 0.9;
   }
 
-  /* 下部管理バー */
+  /* 下部フッターアクション */
   .footer-actions {
     display: flex;
     justify-content: space-between;
@@ -419,13 +419,13 @@
 <body>
 
 <div class="app-container">
-  <!-- ヘッダー: 1行コンパクト化 & モード切替 -->
+  <!-- ヘッダー: 1行コンパクト化 & モード切替（数字なし） -->
   <header>
     <div class="header-left">
       <div class="header-icon">🎯</div>
       <div class="mode-switcher">
-        <button id="modeBtnAm1" class="mode-btn active" onclick="switchMode('am1')">午前1 (223)</button>
-        <button id="modeBtnAm2" class="mode-btn" onclick="switchMode('am2')">午前2 (205)</button>
+        <button id="modeBtnAm1" class="mode-btn" onclick="switchMode('am1')">午前1</button>
+        <button id="modeBtnAm2" class="mode-btn" onclick="switchMode('am2')">午前2</button>
       </div>
     </div>
     <div class="stats-bar">
@@ -531,6 +531,17 @@ function saveHistory() {
   updateScoreDisplay();
 }
 
+// ユーザー設定の永続化（リロード後も保持）
+function saveFilterPreferences() {
+  try {
+    localStorage.setItem('dojo_active_mode', currentMode);
+    localStorage.setItem('dojo_session_filter_' + currentMode, document.getElementById("sessionFilter").value);
+    localStorage.setItem('dojo_cat_filter_' + currentMode, document.getElementById("catFilter").value);
+    localStorage.setItem('dojo_status_filter', document.getElementById("statusFilter").value);
+    localStorage.setItem('dojo_is_random', isRandom.toString());
+  } catch(e) {}
+}
+
 // 下スワイプ更新（Pull-to-refresh）防止
 let touchStartY = 0;
 document.addEventListener('touchstart', function(e) {
@@ -625,7 +636,6 @@ function populateFilterOptions() {
 function switchMode(newMode) {
   if (currentMode === newMode) return;
   currentMode = newMode;
-  localStorage.setItem('dojo_active_mode', newMode);
   
   document.getElementById("modeBtnAm1").classList.toggle("active", newMode === 'am1');
   document.getElementById("modeBtnAm2").classList.toggle("active", newMode === 'am2');
@@ -633,12 +643,25 @@ function switchMode(newMode) {
   ALL_QUESTIONS = (newMode === 'am1' ? AM1_QUESTIONS : AM2_QUESTIONS);
   
   populateFilterOptions();
-  document.getElementById("statusFilter").value = "all";
-  filterQuestions(true);
-  showToast(newMode === 'am1' ? "午前1（厳選223問）に切替" : "支援士 午前2（厳選205問）に切替");
+  
+  // 保持していたセッション/分野の選択を復元（存在すれば）
+  const savedSession = localStorage.getItem('dojo_session_filter_' + currentMode);
+  if (savedSession && document.querySelector(`#sessionFilter option[value="${savedSession}"]`)) {
+    document.getElementById("sessionFilter").value = savedSession;
+  }
+  const savedCat = localStorage.getItem('dojo_cat_filter_' + currentMode);
+  if (savedCat && document.querySelector(`#catFilter option[value="${savedCat}"]`)) {
+    document.getElementById("catFilter").value = savedCat;
+  }
+
+  saveFilterPreferences();
+  filterQuestions(true, false);
+  showToast(newMode === 'am1' ? "午前1 に切り替えました" : "午前2 に切り替えました");
 }
 
 function filterQuestions(resetIndex = true, isSilent = false) {
+  saveFilterPreferences();
+
   const sFilter = document.getElementById("sessionFilter").value;
   const cFilter = document.getElementById("catFilter").value;
   const stFilter = document.getElementById("statusFilter").value;
@@ -659,7 +682,8 @@ function filterQuestions(resetIndex = true, isSilent = false) {
   if (currentList.length === 0) {
     alert("条件に該当する問題がありませんでした。すべての問題を表示します。");
     document.getElementById("statusFilter").value = "all";
-    return filterQuestions(true);
+    saveFilterPreferences();
+    return filterQuestions(true, true);
   }
 
   if (isRandom) shuffle(currentList);
@@ -695,6 +719,7 @@ function toggleRandom() {
   isRandom = !isRandom;
   document.getElementById("randomBtn").innerText = isRandom ? "🔀 順番: ランダム" : "🔀 順番: 通常";
   document.getElementById("randomBtn").style.background = isRandom ? "var(--tag-bg)" : "";
+  saveFilterPreferences();
   if (isRandom) shuffle(currentList);
   currentIndex = 0;
   loadQuestion(currentIndex);
@@ -711,15 +736,18 @@ function loadQuestion(idx) {
   if (idx < 0 || idx >= currentList.length) return;
   const q = currentList[idx];
   const stFilter = document.getElementById("statusFilter").value;
-  const isWrongRetryMode = (stFilter === "wrong");
+  
+  // 「不正解のみ」または「未回答or不正解」の時、不正解だった問題は再挑戦モード（まっさらな状態で解ける）にする
+  const isRetryFilter = (stFilter === "wrong" || stFilter === "unsolved_or_wrong");
+  const h = historyData[q.id];
+  const shouldRetryFresh = isRetryFilter && (h && !h.isCorrect);
 
   document.getElementById("progressText").innerText = `問 ${idx + 1} / ${currentList.length}`;
   document.getElementById("qNumber").innerText = `第 ${idx + 1} 問 【${q.session} 問${q.num}】`;
 
   const statusDiv = document.getElementById("qStatusBadge");
-  const h = historyData[q.id];
 
-  if (isWrongRetryMode) {
+  if (shouldRetryFresh) {
     statusDiv.innerHTML = `<span class="q-status-badge status-wrong">🔄 再解答</span>`;
   } else if (!h) {
     statusDiv.innerHTML = `<span class="q-status-badge status-unanswered">未解答</span>`;
@@ -755,7 +783,8 @@ function loadQuestion(idx) {
 
   const panel = document.getElementById("answerPanel");
 
-  if (h && !isWrongRetryMode) {
+  // 再解答モード（shouldRetryFresh）の時は、過去の選択や解説を隠して真っ新な状態で解かせる
+  if (h && !shouldRetryFresh) {
     showExplanation(h.isCorrect, h.selected, q.ans);
     const allBtns = document.querySelectorAll(".choice-btn");
     allBtns.forEach(b => {
@@ -879,7 +908,6 @@ function importHistory(e) {
 }
 
 function resetHistory() {
-  const label = (currentMode === 'am1' ? "午前1" : "午前2");
   if (confirm(`これまでの解答記録を全てリセットしますか？`)) {
     historyData = {};
     saveHistory();
@@ -889,10 +917,38 @@ function resetHistory() {
 }
 
 function init() {
+  // 保存されたモードの復元
+  currentMode = localStorage.getItem('dojo_active_mode') || 'am1';
   document.getElementById("modeBtnAm1").classList.toggle("active", currentMode === 'am1');
   document.getElementById("modeBtnAm2").classList.toggle("active", currentMode === 'am2');
   
+  ALL_QUESTIONS = (currentMode === 'am1' ? AM1_QUESTIONS : AM2_QUESTIONS);
+  
   populateFilterOptions();
+  
+  // 保存されたフィルター設定の復元（リロード対策）
+  const savedSession = localStorage.getItem('dojo_session_filter_' + currentMode);
+  if (savedSession && document.querySelector(`#sessionFilter option[value="${savedSession}"]`)) {
+    document.getElementById("sessionFilter").value = savedSession;
+  }
+  
+  const savedCat = localStorage.getItem('dojo_cat_filter_' + currentMode);
+  if (savedCat && document.querySelector(`#catFilter option[value="${savedCat}"]`)) {
+    document.getElementById("catFilter").value = savedCat;
+  }
+  
+  const savedStatus = localStorage.getItem('dojo_status_filter');
+  if (savedStatus && document.querySelector(`#statusFilter option[value="${savedStatus}"]`)) {
+    document.getElementById("statusFilter").value = savedStatus;
+  }
+
+  const savedRandom = localStorage.getItem('dojo_is_random');
+  if (savedRandom !== null) {
+    isRandom = (savedRandom === 'true');
+    document.getElementById("randomBtn").innerText = isRandom ? "🔀 順番: ランダム" : "🔀 順番: 通常";
+    document.getElementById("randomBtn").style.background = isRandom ? "var(--tag-bg)" : "";
+  }
+  
   setupFilterEvents();
   filterQuestions(true, true);
 }
