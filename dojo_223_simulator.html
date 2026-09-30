@@ -478,6 +478,7 @@
     <!-- 解答・解説パネル -->
     <div class="ans-panel" id="answerPanel">
       <div class="ans-title" id="ansResult"></div>
+      <button onclick="retryCurrentQuestion()" style="background:#e8f0fe; color:#1a73e8; border:1px solid #aecbfa; border-radius:8px; padding:7px 12px; font-weight:600; font-size:0.85rem; cursor:pointer; margin-bottom:12px; width:100%;">🔄 もう一度解く（選択をリセット）</button>
       <div class="kaisetsu-content" id="kaisetsuContent"></div>
       <div class="history-box">
         <strong>📚 過去の同問出題履歴:</strong>
@@ -593,12 +594,17 @@ function populateFilterOptions() {
   if (currentMode === 'am1') {
     sSelect.innerHTML = `
       <option value="all">全出題回 (R3春〜R5秋・223問)</option>
-      <option value="R5秋">R5秋 (3回前・44問)</option>
-      <option value="R5春">R5春 (4回前・40問)</option>
-      <option value="R4秋">R4秋 (5回前・40問)</option>
-      <option value="R4春">R4春 (6回前・34問)</option>
-      <option value="R3秋">R3秋 (7回前・31問)</option>
-      <option value="R3春">R3春 (8回前・34問)</option>
+      <option value="R5">R5春秋（84問）</option>
+      <option value="R4">R4春秋（74問）</option>
+      <option value="R3">R3春秋（65問）</option>
+      <optgroup label="── 単回別 ──">
+        <option value="R5秋">R5秋 (44問)</option>
+        <option value="R5春">R5春 (40問)</option>
+        <option value="R4秋">R4秋 (40問)</option>
+        <option value="R4春">R4春 (34問)</option>
+        <option value="R3秋">R3秋 (31問)</option>
+        <option value="R3春">R3春 (34問)</option>
+      </optgroup>
     `;
     cSelect.innerHTML = `
       <option value="all">すべての分野</option>
@@ -609,16 +615,23 @@ function populateFilterOptions() {
   } else {
     sSelect.innerHTML = `
       <option value="all">全出題回 (H30秋〜R5秋・205問)</option>
-      <option value="支援士 R5秋">支援士 R5秋 (24問)</option>
-      <option value="支援士 R5春">支援士 R5春 (25問)</option>
-      <option value="支援士 R4秋">支援士 R4秋 (25問)</option>
-      <option value="支援士 R4春">支援士 R4春 (23問)</option>
-      <option value="支援士 R3秋">支援士 R3秋 (22問)</option>
-      <option value="支援士 R3春">支援士 R3春 (21問)</option>
-      <option value="支援士 R2秋">支援士 R2秋 (14問)</option>
-      <option value="支援士 R1秋">支援士 R1秋 (18問)</option>
-      <option value="支援士 H31春">支援士 H31春 (19問)</option>
-      <option value="支援士 H30秋">支援士 H30秋 (14問)</option>
+      <option value="R5">R5春秋（49問）</option>
+      <option value="R4">R4春秋（48問）</option>
+      <option value="R3">R3春秋（43問）</option>
+      <option value="H31_R1">H31/R1春秋（37問）</option>
+      <option value="R2_H30">R2秋・H30秋（28問）</option>
+      <optgroup label="── 単回別 ──">
+        <option value="支援士 R5秋">支援士 R5秋 (24問)</option>
+        <option value="支援士 R5春">支援士 R5春 (25問)</option>
+        <option value="支援士 R4秋">支援士 R4秋 (25問)</option>
+        <option value="支援士 R4春">支援士 R4春 (23問)</option>
+        <option value="支援士 R3秋">支援士 R3秋 (22問)</option>
+        <option value="支援士 R3春">支援士 R3春 (21問)</option>
+        <option value="支援士 R2秋">支援士 R2秋 (14問)</option>
+        <option value="支援士 R1秋">支援士 R1秋 (18問)</option>
+        <option value="支援士 H31春">支援士 H31春 (19問)</option>
+        <option value="支援士 H30秋">支援士 H30秋 (14問)</option>
+      </optgroup>
     `;
     cSelect.innerHTML = `
       <option value="all">すべての分野</option>
@@ -667,7 +680,14 @@ function filterQuestions(resetIndex = true, isSilent = false) {
   const stFilter = document.getElementById("statusFilter").value;
 
   currentList = ALL_QUESTIONS.filter(q => {
-    if (sFilter !== "all" && q.session !== sFilter) return false;
+    if (sFilter !== "all") {
+      if (sFilter === "R5" && !q.session.includes("R5")) return false;
+      else if (sFilter === "R4" && !q.session.includes("R4")) return false;
+      else if (sFilter === "R3" && !q.session.includes("R3")) return false;
+      else if (sFilter === "H31_R1" && !q.session.includes("H31") && !q.session.includes("R1")) return false;
+      else if (sFilter === "R2_H30" && !q.session.includes("R2") && !q.session.includes("H30")) return false;
+      else if (!["R5", "R4", "R3", "H31_R1", "R2_H30"].includes(sFilter) && q.session !== sFilter) return false;
+    }
     if (cFilter !== "all" && q.category !== cFilter && q.subcat !== cFilter) return false;
     
     const h = historyData[q.id];
@@ -861,6 +881,18 @@ function showExplanation(isCorrect, selectedKey, correctKey) {
   } else {
     hList.innerHTML = "<li>出題歴情報なし</li>";
   }
+}
+
+function retryCurrentQuestion() {
+  const q = currentList[currentIndex];
+  if (!q) return;
+  const allBtns = document.querySelectorAll(".choice-btn");
+  allBtns.forEach(b => {
+    b.disabled = false;
+    b.classList.remove("selected-correct", "selected-wrong", "correct-highlight");
+  });
+  document.getElementById("answerPanel").style.display = "none";
+  showToast("選択をリセットしました。もう一度選んでください。");
 }
 
 function prevQuestion() {
