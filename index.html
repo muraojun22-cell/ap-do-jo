@@ -279,6 +279,28 @@
     background-color: rgba(52, 168, 83, 0.08);
   }
 
+  .show-ans-btn {
+    width: 100%;
+    padding: 11px 14px;
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--primary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .show-ans-btn:hover {
+    background: #e8f0fe;
+    border-color: #aecbfa;
+  }
+
   /* 解説パネル */
   .ans-panel {
     display: none;
@@ -468,6 +490,11 @@
 
     <!-- 選択肢 -->
     <div class="choices-list" id="choicesList"></div>
+
+    <!-- 解答前: 解説確認ボタン -->
+    <div style="margin-bottom: 12px;" id="showAnsContainer">
+      <button class="show-ans-btn" id="showAnsBtn" onclick="peekExplanation()">📖 解答・解説を確認する</button>
+    </div>
 
     <!-- 上段: ナビゲーションボタン（回答直後用） -->
     <div class="nav-btn-container">
@@ -802,10 +829,12 @@ function loadQuestion(idx) {
   });
 
   const panel = document.getElementById("answerPanel");
+  const showBtnContainer = document.getElementById("showAnsContainer");
 
   // 再解答モード（shouldRetryFresh）の時は、過去の選択や解説を隠して真っ新な状態で解かせる
   if (h && !shouldRetryFresh) {
     showExplanation(h.isCorrect, h.selected, q.ans);
+    if (showBtnContainer) showBtnContainer.style.display = "none";
     const allBtns = document.querySelectorAll(".choice-btn");
     allBtns.forEach(b => {
       b.disabled = true;
@@ -819,6 +848,7 @@ function loadQuestion(idx) {
     });
   } else {
     panel.style.display = "none";
+    if (showBtnContainer) showBtnContainer.style.display = "block";
   }
 
   // 上下すべての前へ・次へボタンの有効/無効を連動
@@ -829,6 +859,9 @@ function loadQuestion(idx) {
 function selectChoice(selectedKey, correctKey, btn, qId) {
   const allBtns = document.querySelectorAll(".choice-btn");
   allBtns.forEach(b => b.disabled = true);
+
+  const showBtnContainer = document.getElementById("showAnsContainer");
+  if (showBtnContainer) showBtnContainer.style.display = "none";
 
   const isCorrect = (selectedKey === correctKey);
   historyData[qId] = { selected: selectedKey, isCorrect: isCorrect, time: Date.now() };
@@ -892,7 +925,28 @@ function retryCurrentQuestion() {
     b.classList.remove("selected-correct", "selected-wrong", "correct-highlight");
   });
   document.getElementById("answerPanel").style.display = "none";
+  const showBtnContainer = document.getElementById("showAnsContainer");
+  if (showBtnContainer) showBtnContainer.style.display = "block";
   showToast("選択をリセットしました。もう一度選んでください。");
+}
+
+function peekExplanation() {
+  const q = currentList[currentIndex];
+  if (!q) return;
+
+  const allBtns = document.querySelectorAll(".choice-btn");
+  allBtns.forEach(b => {
+    b.disabled = true;
+    const key = b.querySelector(".choice-key").innerText;
+    if (key === q.ans) {
+      b.classList.add("correct-highlight");
+    }
+  });
+
+  showExplanation(undefined, undefined, q.ans);
+
+  const showBtnContainer = document.getElementById("showAnsContainer");
+  if (showBtnContainer) showBtnContainer.style.display = "none";
 }
 
 function prevQuestion() {
