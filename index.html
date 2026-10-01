@@ -491,21 +491,21 @@
     <!-- 選択肢 -->
     <div class="choices-list" id="choicesList"></div>
 
-    <!-- 解答前: 解説確認ボタン -->
-    <div style="margin-bottom: 12px;" id="showAnsContainer">
-      <button class="show-ans-btn" id="showAnsBtn" onclick="peekExplanation()">📖 解答・解説を確認する</button>
-    </div>
-
     <!-- 上段: ナビゲーションボタン（回答直後用） -->
     <div class="nav-btn-container">
       <button class="nav-btn nav-prev-btn" onclick="prevQuestion()">◀ 前へ</button>
       <button class="nav-btn nav-next-btn" onclick="nextQuestion()">次へ進む ▶</button>
     </div>
 
+    <!-- 解答前: 解説確認ボタン（ナビゲーションの一段下） -->
+    <div style="margin-top: 10px; margin-bottom: 6px;" id="showAnsContainer">
+      <button class="show-ans-btn" id="showAnsBtn" onclick="peekExplanation()">📖 解答・解説を確認する</button>
+    </div>
+
     <!-- 解答・解説パネル -->
     <div class="ans-panel" id="answerPanel">
       <div class="ans-title" id="ansResult"></div>
-      <button onclick="retryCurrentQuestion()" style="background:#e8f0fe; color:#1a73e8; border:1px solid #aecbfa; border-radius:8px; padding:7px 12px; font-weight:600; font-size:0.85rem; cursor:pointer; margin-bottom:12px; width:100%;">🔄 もう一度解く（選択をリセット）</button>
+      <button onclick="retryCurrentQuestion()" style="background:#e8f0fe; color:#1a73e8; border:1px solid #aecbfa; border-radius:8px; padding:7px 12px; font-weight:600; font-size:0.85rem; cursor:pointer; margin-bottom:12px; width:100%;">🔄 選択をリセット / 解説を閉じる</button>
       <div class="kaisetsu-content" id="kaisetsuContent"></div>
       <div class="history-box">
         <strong>📚 過去の同問出題履歴:</strong>
@@ -934,15 +934,7 @@ function peekExplanation() {
   const q = currentList[currentIndex];
   if (!q) return;
 
-  const allBtns = document.querySelectorAll(".choice-btn");
-  allBtns.forEach(b => {
-    b.disabled = true;
-    const key = b.querySelector(".choice-key").innerText;
-    if (key === q.ans) {
-      b.classList.add("correct-highlight");
-    }
-  });
-
+  // 選択肢は選択されていない状態のまま（色付けや無効化はしない）で解説パネルのみ開く
   showExplanation(undefined, undefined, q.ans);
 
   const showBtnContainer = document.getElementById("showAnsContainer");
